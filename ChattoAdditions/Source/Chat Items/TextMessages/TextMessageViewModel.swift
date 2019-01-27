@@ -25,19 +25,15 @@
 import Foundation
 
 public protocol TextMessageViewModelProtocol: DecoratedMessageViewModelProtocol {
-    var text: String { get }
-    var cellAccessibilityIdentifier: String { get }
-    var bubbleAccessibilityIdentifier: String { get }
+    var text: NSAttributedString { get }
 }
 
 open class TextMessageViewModel<TextMessageModelT: TextMessageModelProtocol>: TextMessageViewModelProtocol {
-    open var text: String {
+    open var text: NSAttributedString {
         return self.textMessage.text
     }
     public let textMessage: TextMessageModelT
     public let messageViewModel: MessageViewModelProtocol
-    public let cellAccessibilityIdentifier = "chatto.message.text.cell"
-    public let bubbleAccessibilityIdentifier = "chatto.message.text.bubble"
 
     public init(textMessage: TextMessageModelT, messageViewModel: MessageViewModelProtocol) {
         self.textMessage = textMessage
@@ -59,7 +55,7 @@ open class TextMessageViewModelDefaultBuilder<TextMessageModelT: TextMessageMode
     let messageViewModelBuilder = MessageViewModelDefaultBuilder()
 
     open func createViewModel(_ textMessage: TextMessageModelT) -> TextMessageViewModel<TextMessageModelT> {
-        let messageViewModel = self.messageViewModelBuilder.createMessageViewModel(textMessage)
+      let messageViewModel = self.messageViewModelBuilder.createMessageViewModel(textMessage)
         let textMessageViewModel = TextMessageViewModel(textMessage: textMessage, messageViewModel: messageViewModel)
         return textMessageViewModel
     }

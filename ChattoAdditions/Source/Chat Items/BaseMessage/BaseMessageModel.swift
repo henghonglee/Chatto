@@ -31,9 +31,13 @@ public enum MessageStatus {
     case success
 }
 
+@objc public enum DeliveryDirection : Int {
+  case incoming, outgoing, admin
+}
+
 public protocol MessageModelProtocol: ChatItemProtocol {
     var senderId: String { get }
-    var isIncoming: Bool { get }
+    var isIncoming: DeliveryDirection { get }
     var date: Date { get }
     var status: MessageStatus { get }
 }
@@ -55,7 +59,7 @@ public extension DecoratedMessageModelProtocol {
         return self.messageModel.type
     }
 
-    var isIncoming: Bool {
+    var isIncoming: DeliveryDirection {
         return self.messageModel.isIncoming
     }
 
@@ -72,11 +76,11 @@ open class MessageModel: MessageModelProtocol {
     open var uid: String
     open var senderId: String
     open var type: String
-    open var isIncoming: Bool
+    open var isIncoming: DeliveryDirection
     open var date: Date
     open var status: MessageStatus
 
-    public init(uid: String, senderId: String, type: String, isIncoming: Bool, date: Date, status: MessageStatus) {
+    public init(uid: String, senderId: String, type: String, isIncoming: DeliveryDirection, date: Date, status: MessageStatus) {
         self.uid = uid
         self.senderId = senderId
         self.type = type

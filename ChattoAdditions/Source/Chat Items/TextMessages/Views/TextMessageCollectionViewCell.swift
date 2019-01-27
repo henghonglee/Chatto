@@ -37,7 +37,9 @@ public final class TextMessageCollectionViewCell: BaseMessageCollectionViewCell<
     // MARK: Subclassing (view creation)
 
     public override func createBubbleView() -> TextBubbleView {
-        return TextBubbleView()
+      let bubbleView = TextBubbleView()
+      bubbleView.textView.delegate = self
+      return bubbleView
     }
 
     public override func performBatchUpdates(_ updateClosure: @escaping () -> Void, animated: Bool, completion: (() -> Void)?) {
@@ -56,7 +58,6 @@ public final class TextMessageCollectionViewCell: BaseMessageCollectionViewCell<
 
     public var textMessageViewModel: TextMessageViewModelProtocol! {
         didSet {
-            self.accessibilityIdentifier = self.textMessageViewModel.cellAccessibilityIdentifier
             self.messageViewModel = self.textMessageViewModel
             self.bubbleView.textMessageViewModel = self.textMessageViewModel
         }

@@ -25,7 +25,7 @@
 import UIKit
 
 public protocol PhotoBubbleViewStyleProtocol {
-    func maskingImage(viewModel: PhotoMessageViewModelProtocol) -> UIImage
+    func maskingImage(viewModel: PhotoMessageViewModelProtocol) -> UIImage?
     func borderImage(viewModel: PhotoMessageViewModelProtocol) -> UIImage?
     func placeholderBackgroundImage(viewModel: PhotoMessageViewModelProtocol) -> UIImage
     func placeholderIconImage(viewModel: PhotoMessageViewModelProtocol) -> UIImage
@@ -61,9 +61,10 @@ open class PhotoBubbleView: UIView, MaximumLayoutWidthSpecificable, BackgroundSi
 
     public private(set) lazy var imageView: UIImageView = {
         let imageView = UIImageView()
-        imageView.autoresizingMask = []
+        imageView.autoresizingMask = UIViewAutoresizing()
         imageView.clipsToBounds = true
         imageView.autoresizesSubviews = false
+        imageView.autoresizingMask = UIViewAutoresizing()
         imageView.contentMode = .scaleAspectFill
         imageView.addSubview(self.borderView)
         return imageView
@@ -82,13 +83,12 @@ open class PhotoBubbleView: UIView, MaximumLayoutWidthSpecificable, BackgroundSi
 
     private var placeholderIconView: UIImageView = {
         let imageView = UIImageView()
-        imageView.autoresizingMask = []
+        imageView.autoresizingMask = UIViewAutoresizing()
         return imageView
     }()
 
     public var photoMessageViewModel: PhotoMessageViewModelProtocol! {
         didSet {
-            self.accessibilityIdentifier = self.photoMessageViewModel.bubbleAccessibilityIdentifier
             self.updateViews()
         }
     }
@@ -219,13 +219,13 @@ private class PhotoBubbleLayoutModel {
         let photoSize: CGSize
         let placeholderSize: CGSize
         let preferredMaxLayoutWidth: CGFloat
-        let isIncoming: Bool
+        let isIncoming: DeliveryDirection
         let tailWidth: CGFloat
 
         init(photoSize: CGSize,
              placeholderSize: CGSize,
              tailWidth: CGFloat,
-             isIncoming: Bool,
+             isIncoming: DeliveryDirection,
              preferredMaxLayoutWidth width: CGFloat) {
             self.photoSize = photoSize
             self.placeholderSize = placeholderSize
@@ -254,7 +254,7 @@ private class PhotoBubbleLayoutModel {
         let photoSize = self.layoutContext.photoSize
         self.photoFrame = CGRect(origin: .zero, size: photoSize)
         self.placeholderFrame = CGRect(origin: .zero, size: self.layoutContext.placeholderSize)
-        let offsetX: CGFloat = 0.5 * self.layoutContext.tailWidth * (self.layoutContext.isIncoming ? 1.0 : -1.0)
+        let offsetX: CGFloat = 0.5 * self.layoutContext.tailWidth * (self.layoutContext.isIncoming == .outgoing ? -1.0 : 1.0)
         self.visualCenter = self.photoFrame.bma_center.bma_offsetBy(dx: offsetX, dy: 0)
         self.size = photoSize
     }

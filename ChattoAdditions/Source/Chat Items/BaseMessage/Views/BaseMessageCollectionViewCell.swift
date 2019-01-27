@@ -68,7 +68,7 @@ public struct BaseMessageCollectionViewCellLayoutConstants {
         - Have a BubbleViewType that responds properly to sizeThatFits:
 */
 
-open class BaseMessageCollectionViewCell<BubbleViewType>: UICollectionViewCell, BackgroundSizingQueryable, AccessoryViewRevealable, UIGestureRecognizerDelegate where
+open class BaseMessageCollectionViewCell<BubbleViewType>: UICollectionViewCell, BackgroundSizingQueryable, AccessoryViewRevealable, UIGestureRecognizerDelegate, UITextViewDelegate where
     BubbleViewType: UIView,
     BubbleViewType: MaximumLayoutWidthSpecificable,
     BubbleViewType: BackgroundSizingQueryable {
@@ -231,7 +231,7 @@ open class BaseMessageCollectionViewCell<BubbleViewType>: UICollectionViewCell, 
 
         let avatarImageSize = style.avatarSize(viewModel: viewModel)
         if avatarImageSize != .zero {
-            self.avatarView.image = viewModel.avatarImage.value
+            self.avatarView.image = UIImage(named: "DeleteButton")
         }
     }
 
@@ -255,10 +255,10 @@ open class BaseMessageCollectionViewCell<BubbleViewType>: UICollectionViewCell, 
             let leftOffsetForContentView = max(0, offsetToRevealAccessoryView)
             let leftOffsetForAccessoryView = min(leftOffsetForContentView, accessoryViewWidth + layoutConstants.horizontalTimestampMargin)
             var contentViewframe = self.contentView.frame
-            if self.messageViewModel.isIncoming {
-                contentViewframe.origin = CGPoint.zero
+            if self.messageViewModel.isIncoming == .outgoing {
+              contentViewframe.origin.x = -leftOffsetForContentView
             } else {
-                contentViewframe.origin.x = -leftOffsetForContentView
+              contentViewframe.origin = CGPoint.zero
             }
             self.contentView.frame = contentViewframe
             self.accessoryTimestampView.center = CGPoint(x: self.bounds.width - leftOffsetForAccessoryView + accessoryViewWidth / 2, y: self.contentView.center.y)
@@ -402,9 +402,14 @@ open class BaseMessageCollectionViewCell<BubbleViewType>: UICollectionViewCell, 
             break
         }
     }
+    public var onURLTapped: ((_ cell: BaseMessageCollectionViewCell, _ url: URL) -> Bool)?
+    public func textView(_ textView: UITextView, shouldInteractWith URL: URL, in characterRange: NSRange) -> Bool {
+      guard let urlTapBlock = self.onURLTapped else { return true }
+      return urlTapBlock(self, URL)
+    }
 }
 
-private struct Layout {
+fileprivate struct Layout {
     private (set) var size = CGSize.zero
     private (set) var failedButtonFrame = CGRect.zero
     private (set) var bubbleViewFrame = CGRect.zero
@@ -463,7 +468,7 @@ private struct Layout {
 
         currentX += self.selectionIndicatorFrame.maxX
 
-        if isIncoming {
+        if isIncoming == .incoming {
             currentX += horizontalMargin
             self.avatarViewFrame.origin.x = currentX
             currentX += avatarSize.width
@@ -477,7 +482,7 @@ private struct Layout {
                 currentX += horizontalInterspacing
             }
             self.bubbleViewFrame.origin.x = currentX
-        } else {
+        } else if isIncoming == .outgoing {
             currentX = containerRect.maxX - horizontalMargin
             currentX -= avatarSize.width
             self.avatarViewFrame.origin.x = currentX
@@ -499,13 +504,13 @@ private struct Layout {
     }
 }
 
-private struct LayoutParameters {
+fileprivate struct LayoutParameters {
     let containerWidth: CGFloat
     let horizontalMargin: CGFloat
     let horizontalInterspacing: CGFloat
     let maxContainerWidthPercentageForBubbleView: CGFloat // in [0, 1]
     let bubbleView: UIView
-    let isIncoming: Bool
+    let isIncoming: DeliveryDirection
     let isShowingFailedButton: Bool
     let failedButtonSize: CGSize
     let avatarSize: CGSize

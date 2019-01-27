@@ -25,16 +25,17 @@
 import Foundation
 
 public protocol TextMessageModelProtocol: DecoratedMessageModelProtocol {
-    var text: String { get }
+    var text: NSAttributedString { get }
 }
 
 open class TextMessageModel<MessageModelT: MessageModelProtocol>: TextMessageModelProtocol {
+
     public var messageModel: MessageModelProtocol {
         return self._messageModel
     }
     public let _messageModel: MessageModelT // Can't make messasgeModel: MessageModelT: https://gist.github.com/diegosanchezr/5a66c7af862e1117b556
-    public let text: String
-    public init(messageModel: MessageModelT, text: String) {
+    public let text: NSAttributedString
+    public init(messageModel: MessageModelT, text: NSAttributedString) {
         self._messageModel = messageModel
         self.text = text
     }

@@ -69,8 +69,8 @@ open class TextMessageCollectionViewCellDefaultStyle: TextMessageCollectionViewC
     public let textStyle: TextStyle
     public let baseStyle: BaseMessageCollectionViewCellDefaultStyle
     public init (
-        bubbleImages: BubbleImages = TextMessageCollectionViewCellDefaultStyle.createDefaultBubbleImages(),
-        textStyle: TextStyle = TextMessageCollectionViewCellDefaultStyle.createDefaultTextStyle(),
+        bubbleImages: BubbleImages = Class.createDefaultBubbleImages(),
+        textStyle: TextStyle = Class.createDefaultTextStyle(),
         baseStyle: BaseMessageCollectionViewCellDefaultStyle = BaseMessageCollectionViewCellDefaultStyle()) {
             self.bubbleImages = bubbleImages
             self.textStyle = textStyle
@@ -79,10 +79,12 @@ open class TextMessageCollectionViewCellDefaultStyle: TextMessageCollectionViewC
 
     lazy private var images: [ImageKey: UIImage] = {
         return [
-            .template(isIncoming: true, showsTail: true): self.bubbleImages.incomingTail(),
-            .template(isIncoming: true, showsTail: false): self.bubbleImages.incomingNoTail(),
-            .template(isIncoming: false, showsTail: true): self.bubbleImages.outgoingTail(),
-            .template(isIncoming: false, showsTail: false): self.bubbleImages.outgoingNoTail()
+            .template(isIncoming: .incoming, showsTail: true): self.bubbleImages.incomingTail(),
+            .template(isIncoming: .incoming, showsTail: false): self.bubbleImages.incomingNoTail(),
+            .template(isIncoming: .outgoing, showsTail: true): self.bubbleImages.outgoingTail(),
+            .template(isIncoming: .outgoing, showsTail: false): self.bubbleImages.outgoingNoTail(),
+            .template(isIncoming: .admin, showsTail: false): self.bubbleImages.outgoingNoTail(),
+            .template(isIncoming: .admin, showsTail: true): self.bubbleImages.outgoingNoTail()
         ]
     }()
 
@@ -95,11 +97,21 @@ open class TextMessageCollectionViewCellDefaultStyle: TextMessageCollectionViewC
     }
 
     open func textColor(viewModel: TextMessageViewModelProtocol, isSelected: Bool) -> UIColor {
-        return viewModel.isIncoming ? self.incomingColor : self.outgoingColor
+      switch viewModel.isIncoming {
+      case .incoming, .admin:
+        return self.incomingColor
+      case .outgoing:
+        return self.outgoingColor
+      }
     }
 
     open func textInsets(viewModel: TextMessageViewModelProtocol, isSelected: Bool) -> UIEdgeInsets {
-        return viewModel.isIncoming ? self.textStyle.incomingInsets : self.textStyle.outgoingInsets
+      switch viewModel.isIncoming {
+      case .incoming, .admin:
+        return self.textStyle.incomingInsets
+      case .outgoing:
+        return self.textStyle.outgoingInsets
+      }
     }
 
     open func bubbleImageBorder(viewModel: TextMessageViewModelProtocol, isSelected: Bool) -> UIImage? {
@@ -124,9 +136,14 @@ open class TextMessageCollectionViewCellDefaultStyle: TextMessageCollectionViewC
         return UIImage()
     }
 
-    open func createImage(templateImage image: UIImage, isIncoming: Bool, status: MessageViewModelStatus, isSelected: Bool) -> UIImage {
-        var color = isIncoming ? self.baseStyle.baseColorIncoming : self.baseStyle.baseColorOutgoing
-
+    open func createImage(templateImage image: UIImage, isIncoming: DeliveryDirection, status: MessageViewModelStatus, isSelected: Bool) -> UIImage {
+        var color: UIColor
+        switch isIncoming {
+        case .incoming, .admin:
+          color = self.baseStyle.baseColorIncoming
+        case .outgoing:
+          color = self.baseStyle.baseColorOutgoing
+        }
         switch status {
         case .success:
             break
@@ -142,8 +159,8 @@ open class TextMessageCollectionViewCellDefaultStyle: TextMessageCollectionViewC
     }
 
     private enum ImageKey: Hashable {
-        case template(isIncoming: Bool, showsTail: Bool)
-        case normal(isIncoming: Bool, status: MessageViewModelStatus, showsTail: Bool, isSelected: Bool)
+        case template(isIncoming: DeliveryDirection, showsTail: Bool)
+        case normal(isIncoming: DeliveryDirection, status: MessageViewModelStatus, showsTail: Bool, isSelected: Bool)
 
         var hashValue: Int {
             switch self {

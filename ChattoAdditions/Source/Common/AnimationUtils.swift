@@ -28,7 +28,7 @@ public extension CABasicAnimation {
         animation.duration = duration
         animation.fromValue = 0
         animation.toValue = 1
-        animation.fillMode = .forwards
+        animation.fillMode = kCAFillModeForwards
         animation.isAdditive = false
         return animation
     }

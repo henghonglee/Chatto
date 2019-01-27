@@ -24,16 +24,24 @@
 
 import Foundation
 
-extension BaseChatViewController {
+extension BaseChatViewController: ChatDataSourceDelegateProtocol {
 
-    public func enqueueModelUpdate(updateType: UpdateType, completion: (() -> Void)? = nil) {
+    public func chatDataSourceDidUpdate(_ chatDataSource: ChatDataSourceProtocol, updateType: UpdateType) {
+        self.enqueueModelUpdate(updateType: updateType)
+    }
+
+    public func chatDataSourceDidUpdate(_ chatDataSource: ChatDataSourceProtocol) {
+        self.enqueueModelUpdate(updateType: .normal)
+    }
+
+    public func enqueueModelUpdate(updateType: UpdateType) {
         let newItems = self.chatDataSource?.chatItems ?? []
 
         if self.updatesConfig.coalesceUpdates {
             self.updateQueue.flushQueue()
         }
 
-        self.updateQueue.addTask({ [weak self] (runNextTask) -> Void in
+        self.updateQueue.addTask({ [weak self] (completion) -> Void in
             guard let sSelf = self else { return }
 
             let oldItems = sSelf.chatItemCompanionCollection
@@ -42,11 +50,7 @@ extension BaseChatViewController {
                 if sSelf.updateQueue.isEmpty {
                     sSelf.enqueueMessageCountReductionIfNeeded()
                 }
-                completion?()
-                DispatchQueue.main.async(execute: { () -> Void in
-                    // Reduces inconsistencies before next update: https://github.com/diegosanchezr/UICollectionViewStressing
-                    runNextTask()
-                })
+                completion()
             })
         })
     }
@@ -69,21 +73,19 @@ extension BaseChatViewController {
 
     // Returns scrolling position in interval [0, 1], 0 top, 1 bottom
     public var focusPosition: Double {
-        guard let collectionView = self.collectionView else { return 0 }
         if self.isCloseToBottom() {
             return 1
         } else if self.isCloseToTop() {
             return 0
         }
 
-        let contentHeight = collectionView.contentSize.height
+        let contentHeight = self.collectionView.contentSize.height
         guard contentHeight > 0 else {
             return 0.5
         }
 
         // Rough estimation
-        let collectionViewContentYOffset = collectionView.contentOffset.y
-        let midContentOffset = collectionViewContentYOffset + self.visibleRect().height / 2
+        let midContentOffset = self.collectionView.contentOffset.y + self.visibleRect().height / 2
         return min(max(0, Double(midContentOffset / contentHeight)), 1.0)
     }
 
@@ -104,9 +106,8 @@ extension BaseChatViewController {
 
     private func visibleCellsFromCollectionViewApi() -> [IndexPath: UICollectionViewCell] {
         var visibleCells: [IndexPath: UICollectionViewCell] = [:]
-        guard let collectionView = self.collectionView else { return visibleCells }
-        collectionView.indexPathsForVisibleItems.forEach({ (indexPath) in
-            if let cell = collectionView.cellForItem(at: indexPath) {
+        self.collectionView.indexPathsForVisibleItems.forEach({ (indexPath) in
+            if let cell = self.collectionView.cellForItem(at: indexPath) {
                 visibleCells[indexPath] = cell
             }
         })
@@ -134,10 +135,7 @@ extension BaseChatViewController {
                              changes: CollectionChanges,
                              updateType: UpdateType,
                              completion: @escaping () -> Void) {
-        guard let collectionView = self.collectionView else {
-            completion()
-            return
-        }
+
         let usesBatchUpdates: Bool
         do { // Recover from too fast updates...
             let visibleCellsAreValid = self.visibleCellsAreValid(changes: changes)
@@ -179,21 +177,25 @@ extension BaseChatViewController {
             myCompletion = {
                 if myCompletionExecuted { return }
                 myCompletionExecuted = true
-                completion()
+
+                DispatchQueue.main.async(execute: { () -> Void in
+                    // Reduces inconsistencies before next update: https://github.com/diegosanchezr/UICollectionViewStressing
+                    completion()
+                })
             }
         }
 
         if usesBatchUpdates {
             UIView.animate(withDuration: self.constants.updatesAnimationDuration, animations: { () -> Void in
                 self.unfinishedBatchUpdatesCount += 1
-                collectionView.performBatchUpdates({ () -> Void in
+                self.collectionView.performBatchUpdates({ () -> Void in
                     updateModelClosure()
                     self.updateVisibleCells(changes) // For instance, to support removal of tails
 
-                    collectionView.deleteItems(at: Array(changes.deletedIndexPaths))
-                    collectionView.insertItems(at: Array(changes.insertedIndexPaths))
+                    self.collectionView.deleteItems(at: Array(changes.deletedIndexPaths))
+                    self.collectionView.insertItems(at: Array(changes.insertedIndexPaths))
                     for move in changes.movedIndexPaths {
-                        collectionView.moveItem(at: move.indexPathOld, to: move.indexPathNew)
+                        self.collectionView.moveItem(at: move.indexPathOld, to: move.indexPathNew)
                     }
                 }, completion: { [weak self] (_) -> Void in
                     defer { myCompletion() }
@@ -203,18 +205,12 @@ extension BaseChatViewController {
                         DispatchQueue.main.async(execute: onAllBatchUpdatesFinished)
                     }
                 })
-                if self.placeMessagesFromBottom {
-                    self.adjustCollectionViewInsets(shouldUpdateContentOffset: false)
-                }
             })
         } else {
             self.visibleCells = [:]
             updateModelClosure()
-            collectionView.reloadData()
-            collectionView.collectionViewLayout.prepare()
-            if self.placeMessagesFromBottom {
-                self.adjustCollectionViewInsets(shouldUpdateContentOffset: false)
-            }
+            self.collectionView.reloadData()
+            self.collectionView.collectionViewLayout.prepare()
         }
 
         switch scrollAction {
@@ -231,11 +227,7 @@ extension BaseChatViewController {
     }
 
     private func updateModels(newItems: [ChatItemProtocol], oldItems: ChatItemCompanionCollection, updateType: UpdateType, completion: @escaping () -> Void) {
-        guard let collectionView = self.collectionView else {
-            completion()
-            return
-        }
-        let collectionViewWidth = collectionView.bounds.width
+        let collectionViewWidth = self.collectionView.bounds.width
         let updateType = self.isFirstLayout ? .firstLoad : updateType
         let performInBackground = updateType != .firstLoad
 
@@ -339,9 +331,8 @@ extension BaseChatViewController {
     }
 
     public func chatCollectionViewLayoutModel() -> ChatCollectionViewLayoutModel {
-        guard let collectionView = self.collectionView else { return self.layoutModel }
-        if self.layoutModel.calculatedForWidth != collectionView.bounds.width {
-            self.layoutModel = self.createLayoutModel(self.chatItemCompanionCollection, collectionViewWidth: collectionView.bounds.width)
+        if self.layoutModel.calculatedForWidth != self.collectionView.bounds.width {
+            self.layoutModel = self.createLayoutModel(self.chatItemCompanionCollection, collectionViewWidth: self.collectionView.bounds.width)
         }
         return self.layoutModel
     }

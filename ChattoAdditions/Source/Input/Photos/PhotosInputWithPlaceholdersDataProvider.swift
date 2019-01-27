@@ -29,7 +29,7 @@ protocol PhotosInputDataProviderDelegate: class {
 }
 
 protocol PhotosInputDataProviderProtocol: class {
-    var delegate: PhotosInputDataProviderDelegate? { get set }
+    weak var delegate: PhotosInputDataProviderDelegate? { get set }
     var count: Int { get }
     @discardableResult
     func requestPreviewImage(at index: Int,

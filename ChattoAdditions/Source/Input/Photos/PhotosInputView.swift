@@ -34,8 +34,8 @@ public struct PhotosInputViewAppearance {
 }
 
 protocol PhotosInputViewProtocol {
-    var delegate: PhotosInputViewDelegate? { get set }
-    var presentingController: UIViewController? { get }
+    weak var delegate: PhotosInputViewDelegate? { get set }
+    weak var presentingController: UIViewController? { get }
 }
 
 protocol PhotosInputViewDelegate: class {

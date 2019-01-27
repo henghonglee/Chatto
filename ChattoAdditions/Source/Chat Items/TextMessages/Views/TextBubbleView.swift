@@ -57,7 +57,6 @@ public final class TextBubbleView: UIView, MaximumLayoutWidthSpecificable, Backg
 
     public var textMessageViewModel: TextMessageViewModelProtocol! {
         didSet {
-            self.accessibilityIdentifier = self.textMessageViewModel.bubbleAccessibilityIdentifier
             self.updateViews()
         }
     }
@@ -92,7 +91,7 @@ public final class TextBubbleView: UIView, MaximumLayoutWidthSpecificable, Backg
     }()
 
     private var borderImageView: UIImageView = UIImageView()
-    private var textView: UITextView = {
+    public var textView: UITextView = {
         let textView = ChatMessageTextView()
         UIView.performWithoutAnimation({ () -> Void in // fixes iOS 8 blinking when cell appears
             textView.backgroundColor = UIColor.clear
@@ -159,14 +158,17 @@ public final class TextBubbleView: UIView, MaximumLayoutWidthSpecificable, Backg
         if self.textView.textColor != textColor {
             self.textView.textColor = textColor
             self.textView.linkTextAttributes = [
-                NSAttributedString.Key.foregroundColor: textColor,
-                NSAttributedString.Key.underlineStyle: NSUnderlineStyle.single.rawValue
+                NSAttributedStringKey.foregroundColor.rawValue: textColor,
+                NSAttributedStringKey.underlineStyle.rawValue: NSUnderlineStyle.styleSingle.rawValue
             ]
             needsToUpdateText = true
         }
 
-        if needsToUpdateText || self.textView.text != viewModel.text {
-            self.textView.text = viewModel.text
+        if needsToUpdateText || self.textView.attributedText != viewModel.text {
+          let mutable = NSMutableAttributedString(attributedString: viewModel.text)
+          mutable.addAttribute(NSAttributedStringKey.font, value: font, range: NSMakeRange(0, viewModel.text.length))
+          mutable.addAttribute(NSAttributedStringKey.foregroundColor, value: textColor, range: NSMakeRange(0, viewModel.text.length))
+          self.textView.attributedText = mutable
         }
 
         let textInsets = style.textInsets(viewModel: viewModel, isSelected: self.selected)
@@ -226,7 +228,7 @@ private final class TextBubbleLayoutModel {
     }
 
     struct LayoutContext: Equatable, Hashable {
-        let text: String
+        let text: NSAttributedString
         let font: UIFont
         let textInsets: UIEdgeInsets
         let preferredMaxLayoutWidth: CGFloat
@@ -274,10 +276,12 @@ private final class TextBubbleLayoutModel {
 
     private func replicateUITextViewNSTextStorage() -> NSTextStorage {
         // See https://github.com/badoo/Chatto/issues/129
-        return NSTextStorage(string: self.layoutContext.text, attributes: [
-            NSAttributedString.Key.font: self.layoutContext.font,
-            NSAttributedString.Key(rawValue: "NSOriginalFont"): self.layoutContext.font
-        ])
+      let mutableString = NSMutableAttributedString(attributedString: self.layoutContext.text)
+      mutableString.addAttributes([
+        NSAttributedStringKey.font: self.layoutContext.font,
+        NSAttributedStringKey(rawValue: "NSOriginalFont"): self.layoutContext.font
+        ], range: NSMakeRange(0, self.layoutContext.text.length))
+      return NSTextStorage(attributedString: mutableString)
     }
 }
 

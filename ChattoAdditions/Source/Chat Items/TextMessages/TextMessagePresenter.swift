@@ -61,7 +61,15 @@ open class TextMessagePresenter<ViewModelBuilderT, InteractionHandlerT>
     }
 
     public final override func dequeueCell(collectionView: UICollectionView, indexPath: IndexPath) -> UICollectionViewCell {
-        let identifier = self.messageViewModel.isIncoming ? "text-message-incoming" : "text-message-outcoming"
+      var identifier: String
+      switch self.messageViewModel.isIncoming {
+      case .incoming:
+        identifier = "text-message-incoming"
+      case .outgoing:
+        identifier = "text-message-outcoming"
+      case .admin:
+        identifier = "text-message-incoming"
+      }
         return collectionView.dequeueReusableCell(withReuseIdentifier: identifier, for: indexPath)
     }
 
@@ -117,7 +125,7 @@ open class TextMessagePresenter<ViewModelBuilderT, InteractionHandlerT>
     open override func performMenuControllerAction(_ action: Selector) {
         let selector = #selector(UIResponderStandardEditActions.copy(_:))
         if action == selector {
-            UIPasteboard.general.string = self.messageViewModel.text
+            UIPasteboard.general.string = self.messageViewModel.text.string
         } else {
             assert(false, "Unexpected action")
         }

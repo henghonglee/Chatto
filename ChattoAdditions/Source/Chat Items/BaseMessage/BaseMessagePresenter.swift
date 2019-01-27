@@ -41,6 +41,7 @@ public protocol BaseMessageInteractionHandlerProtocol {
     func userDidEndLongPressOnBubble(viewModel: ViewModelT)
     func userDidSelectMessage(viewModel: ViewModelT)
     func userDidDeselectMessage(viewModel: ViewModelT)
+    func userDidTapOnURL(_ url: URL) -> Bool
 }
 
 open class BaseMessagePresenter<BubbleViewT, ViewModelBuilderT, InteractionHandlerT>: BaseChatItemPresenter<BaseMessageCollectionViewCell<BubbleViewT>> where
@@ -131,6 +132,10 @@ open class BaseMessagePresenter<BubbleViewT, ViewModelBuilderT, InteractionHandl
                 guard let sSelf = self else { return }
                 sSelf.onCellSelection()
             }
+            cell.onURLTapped = { [weak self] (cell, url) in
+              guard let sSelf = self else { return true }
+              return sSelf.onCellURLTapped(url)
+            }
             additionalConfiguration?()
         }, animated: animated, completion: nil)
     }
@@ -163,13 +168,13 @@ open class BaseMessagePresenter<BubbleViewT, ViewModelBuilderT, InteractionHandl
             return false
         }
         cell.bubbleView.isUserInteractionEnabled = false // This is a hack for UITextView, shouldn't harm to all bubbles
-        NotificationCenter.default.addObserver(self, selector: #selector(BaseMessagePresenter.willShowMenu(_:)), name: UIMenuController.willShowMenuNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(BaseMessagePresenter.willShowMenu(_:)), name: NSNotification.Name.UIMenuControllerWillShowMenu, object: nil)
         return true
     }
 
     @objc
     func willShowMenu(_ notification: Notification) {
-        NotificationCenter.default.removeObserver(self, name: UIMenuController.willShowMenuNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: NSNotification.Name.UIMenuControllerWillShowMenu, object: nil)
         guard let cell = self.cell, let menuController = notification.object as? UIMenuController else {
             assert(false, "Investigate -> Fix or remove assert")
             return
@@ -212,4 +217,8 @@ open class BaseMessagePresenter<BubbleViewT, ViewModelBuilderT, InteractionHandl
             self.interactionHandler?.userDidSelectMessage(viewModel: self.messageViewModel)
         }
     }
+  open func onCellURLTapped(_ url: URL) -> Bool {
+    guard let handler = self.interactionHandler else { return true }
+    return handler.userDidTapOnURL(url)
+  }
 }

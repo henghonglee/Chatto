@@ -45,7 +45,7 @@ public extension MessageStatus {
 
 public protocol MessageViewModelProtocol: class { // why class? https://gist.github.com/diegosanchezr/29979d22c995b4180830
     var decorationAttributes: BaseMessageDecorationAttributes { get set }
-    var isIncoming: Bool { get }
+    var isIncoming: DeliveryDirection { get }
     var isUserInteractionEnabled: Bool { get set }
     var isShowingFailedIcon: Bool { get }
     var date: String { get }
@@ -75,7 +75,7 @@ extension DecoratedMessageViewModelProtocol {
         }
     }
 
-    public var isIncoming: Bool {
+    public var isIncoming: DeliveryDirection {
         return self.messageViewModel.isIncoming
     }
 
@@ -111,7 +111,7 @@ extension DecoratedMessageViewModelProtocol {
 }
 
 open class MessageViewModel: MessageViewModelProtocol {
-    open var isIncoming: Bool {
+    open var isIncoming: DeliveryDirection {
         return self.messageModel.isIncoming
     }
 
